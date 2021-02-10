@@ -7,6 +7,7 @@ import os
 import pandas as pd
 import statsmodels.discrete.discrete_model
 from anndata import AnnData
+import scipy as sp
 
 def robust_scale_binned(y, x, breaks):
     bins = np.digitize(x,breaks)
@@ -100,7 +101,8 @@ def SCTransform(adata,min_cells=5,gmean_eps=1,n_genes=2000,n_cells=None,bin_size
     cn = np.array(list(adata.obs_names))
     genes_cell_count = X.sum(0).A.flatten()
     genes = np.where(genes_cell_count >= min_cells)[0]
-
+    genes_ix=genes.copy()
+    
     X = X[:,genes]
     Xraw=X.copy()
     gn = gn[genes]
@@ -222,7 +224,13 @@ def SCTransform(adata,min_cells=5,gmean_eps=1,n_genes=2000,n_cells=None,bin_size
     
     if inplace:
         adata.raw = adata.copy()
-        adata.X = X # add log1p of corrected umi counts to layers
+        
+        d = dict(zip(np.arange(X.shape[1]),genes_ix))
+        x,y = X.nonzero()
+        y = np.array([d[i] for i in y])
+        data = X.data
+        Xnew = sp.sparse.coo_matrix((data, (x, y)), shape=adata.shape).tocsr()
+        adata.X = Xnew # TODO: add log1p of corrected umi counts to layers
     else:
         adata_new = AnnData(X=X)
         adata_new.var_names = adata.var_names
