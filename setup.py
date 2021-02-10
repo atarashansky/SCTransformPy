@@ -3,7 +3,7 @@ __version__ = "0.0.1"
 
 
 setup(
-    name="SCTransformPy",
+    name="SCTransform",
     version=__version__,
     author="Alexander Tarashansky",
     author_email="atarashansky@illumina.com",
@@ -17,5 +17,5 @@ setup(
         "pandas",
         "anndata",        
     ],
-    packages=[''],
+   py_modules=['SCTransform'],
 )
