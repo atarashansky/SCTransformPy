@@ -17,5 +17,5 @@ setup(
         "pandas",
         "anndata",        
     ],
-    py_modules=['SCTransform.py']
+    packages=[''],
 )
