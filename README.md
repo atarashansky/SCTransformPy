@@ -11,6 +11,6 @@ Implementation notes:
 - Estimating `theta` using MLE was translated from the `theta.ml` function in R.
 - Pearson residuals are automatically clipped to be in the range `[0, sqrt(N/30)]` where `N` is the number of cells. This ensures that sparsity structure is preserved in the data. Practically, the results do not change much when allowing for dense, negative values.
 
-#TODO 
+## TODO 
 - Provide comparison between the python and R implementations here to show that results are highly similar.
 - Clean up code and prepare for integration with `scanpy`.
