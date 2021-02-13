@@ -9,13 +9,15 @@ import statsmodels.discrete.discrete_model
 from anndata import AnnData
 import scipy as sp
 
+_EPS = np.finfo(float).eps
+
 def robust_scale_binned(y, x, breaks):
     bins = np.digitize(x,breaks)
     binsu = np.unique(bins)
     res = np.zeros(bins.size)
     for i in range(binsu.size):
         yb = y[bins==binsu[i]]
-        res[bins==binsu[i]] = (yb - np.median(yb)) / (1.4826 * np.median(np.abs(yb - np.median(yb)))+ 2.220446e-16)
+        res[bins==binsu[i]] = (yb - np.median(yb)) / (1.4826 * np.median(np.abs(yb - np.median(yb)))+ _EPS)
     
     return res
 
@@ -24,7 +26,7 @@ def is_outlier(y, x, th = 10):
     z = FFTKDE(kernel='gaussian', bw='ISJ').fit(x)
     z.evaluate();
     bin_width = (max(x) - min(x)) * z.bw / 2
-    eps = 2.220446e-16 * 10
+    eps = _EPS * 10
   
     breaks1 = np.arange(min(x),max(x)+ bin_width,bin_width)
     breaks2 = np.arange(min(x) - eps - bin_width/2,max(x)+bin_width,bin_width)
@@ -64,7 +66,7 @@ def theta_ml(y,mu):
     n = y.size
     weights = np.ones(n)
     limit = 10
-    eps = (2.220446e-16)**0.25
+    eps = (_EPS)**0.25
     
     from scipy.special import psi, polygamma
     def score(n,th,mu,y,w):
@@ -142,7 +144,7 @@ def SCTransform(adata,min_cells=5,gmean_eps=1,n_genes=2000,n_cells=None,bin_size
         xlo = np.linspace(genes_log_gmean_step1.min(),genes_log_gmean_step1.max(),512)
         ylo = log_gmean_dens.evaluate(xlo)
         xolo = genes_log_gmean_step1
-        sampling_prob = 1 / (np.interp(xolo,xlo,ylo) + 2.220446e-16)
+        sampling_prob = 1 / (np.interp(xolo,xlo,ylo) + _EPS)
         genes_step1 = np.sort(np.random.choice(genes_step1,size=n_genes,p=sampling_prob/sampling_prob.sum(),replace=False))
         genes_log_gmean_step1 = np.log10(gmean(X[cells_step1,:][:,genes_step1],eps=gmean_eps))
 
@@ -231,9 +233,41 @@ def SCTransform(adata,min_cells=5,gmean_eps=1,n_genes=2000,n_cells=None,bin_size
         data = X.data
         Xnew = sp.sparse.coo_matrix((data, (x, y)), shape=adata.shape).tocsr()
         adata.X = Xnew # TODO: add log1p of corrected umi counts to layers
+        
+        for c in full_model_pars.columns:
+            adata.var[c+'_sct'] = full_model_pars[c]
+        
+        for c in cell_attrs.columns:
+            adata.obs[c+'_sct'] = cell_attrs[c]
+        
+        for c in model_pars.columns:
+            adata.var[c+'_step1_sct'] = model_pars[c]
+            
+        z = pd.Series(index=gn,data=np.zeros(gn.size,dtype='int'))
+        z[gn[genes_step1]]=1
+        
+        w = pd.Series(index=gn,data=np.zeros(gn.size,dtype='int'))
+        w[gn]=genes_log_gmean        
+        adata.var['genes_step1_sct'] = z
+        adata.var['log10_gmean_sct'] = w
+        
     else:
         adata_new = AnnData(X=X)
-        adata_new.var_names = adata.var_names
+        adata_new.var_names = pd.Index(gn)
         adata_new.obs_names = adata.obs_names
         adata_new.raw = adata.copy()
+        
+        for c in full_model_pars.columns:
+            adata_new.var[c+'_sct'] = full_model_pars[c]
+        
+        for c in cell_attrs.columns:
+            adata_new.obs[c+'_sct'] = cell_attrs[c]   
+        
+        for c in model_pars.columns:
+            adata_new.var[c+'_step1_sct'] = model_pars[c]
+                        
+        z = pd.Series(index=gn,data=np.zeros(gn.size,dtype='int'))
+        z[gn[genes_step1]]=1
+        adata_new.var['genes_step1_sct'] = z
+        adata_new.var['log10_gmean_sct'] = genes_log_gmean                        
         return adata_new    
