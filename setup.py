@@ -6,7 +6,7 @@ setup(
     name="SCTransform",
     version=__version__,
     author="Alexander Tarashansky",
-    author_email="atarashansky@illumina.com",
+    author_email="tarashanst@gmail.com",
     url="",
     description="Python port of SCTransform from the Seurat package.",
     install_requires=[
