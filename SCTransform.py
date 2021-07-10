@@ -99,6 +99,7 @@ def SCTransform(adata,min_cells=5,gmean_eps=1,n_genes=2000,n_cells=None,bin_size
     the sparsity structure of the data.
     """
     X=adata.X.copy()
+    X=sp.sparse.csr_matrix(X).eliminate_zeros();
     gn = np.array(list(adata.var_names))
     cn = np.array(list(adata.obs_names))
     genes_cell_count = X.sum(0).A.flatten()
